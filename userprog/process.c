@@ -71,13 +71,64 @@ static bool load(const char *cmdline, void (**eip) (void), void **esp);
  * format binary has been loaded into the heap by load();
  */
 static void
-push_command(const char *cmdline UNUSED, void **esp)
+push_command(const char *cmdline, void **esp)
 {
-    printf("Base Address: 0x%08x\n", *esp);
+    //printf("Base Address: 0x%08x\n", *esp);
 
     // Word align with the stack pointer. DO NOT REMOVE THIS LINE.
     *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
-
+    
+    //----------------------------------------- Number of words in command line
+    //int count = 0;
+    //if(sizeof(cmdline) > 0){
+    //    count++;
+    //}
+    /*
+    for(int i = 0; cmdline[i] != '\0'; i++){
+        if(cmdline[i] == ' '){
+            count++;
+        }
+    }
+     * */
+    //--------------------------------------------
+    int count = 1;
+    
+    int len = strlen(cmdline) + 1;
+    *esp -= len;
+    //printf("argv Address: 0x%08x\n",(unsigned int)  *esp);
+    void* cmdlineEnd = (void*)*esp;
+    //printf("cmdlineend Address: 0x%08x\n",(unsigned int)  cmdlineEnd);
+    
+    
+    memcpy(*esp, cmdline, len);
+    *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
+    //printf("wordalign Address: 0x%08x\n", (unsigned int) *esp);
+    
+    *esp -= 4;
+    //printf("argv[1] Address: 0x%08x\n", (unsigned int) *esp);
+    
+    *((int*) *esp) = 0;
+    
+    
+    
+    *esp -= 4;
+    void* cmdlineEndAddr = (void*)*esp;
+    //printf("argv[0] Address: 0x%08x\n",(unsigned int)  *esp);
+    *((void**) *esp) = cmdlineEnd;
+    
+    *esp -= 4;
+    //printf("argv Address: 0x%08x\n", (unsigned int) *esp);
+    *((void**) *esp) = cmdlineEndAddr;
+    
+    
+    *esp -= 4;
+    //printf("argc Address: 0x%08x\n", (unsigned int) *esp);
+    *((int*) *esp) = count;
+    
+    *esp -= 4;
+    //printf("fake return Address: 0x%08x\n", (unsigned int) *esp);
+    *((int*) *esp) = 0;
+    
     // Some of you CMPS111 Lab 3 code will go here.
     //
     // One approach is to immediately call a function you've created in a
@@ -122,14 +173,14 @@ process_execute(const char *cmdline)
     cmdline_copy = palloc_get_page(0);
     if (cmdline_copy == NULL) 
         return TID_ERROR;
-    
     strlcpy(cmdline_copy, cmdline, PGSIZE);
-
+    
     // Create a Kernel Thread for the new process
     tid = thread_create(cmdline, PRI_DEFAULT, start_process, cmdline_copy);
-
+    
+    
     timer_msleep(10);
-
+    
     return tid;
 }
 
@@ -151,14 +202,15 @@ start_process(void *cmdline)
     pif.eflags = FLAG_IF | FLAG_MBS;
     success = load(cmdline, &pif.eip, &pif.esp);
     if (success) {
+        
         push_command(cmdline, &pif.esp);
+        
     }
     palloc_free_page(cmdline);
-
     if (!success) {
         thread_exit();
     }
-
+    
     // Start the user process by simulating a return from an
     // interrupt, implemented by intr_exit (in threads/intr-stubs.S).  
     // Because intr_exit takes all of its arguments on the stack in 
