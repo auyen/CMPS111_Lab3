@@ -80,52 +80,55 @@ push_command(const char *cmdline, void **esp)
     *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
     
     //----------------------------------------- Number of words in command line
-    int count = 0;
+    int word_count = 1;
+    
     char * token;
     char * cmdcpy = cmdline;
+    for(int i = 0; i < strlen(cmdline); i++){
+        if(cmdline[i] == ' '){
+            if(i > 0 && cmdline[i-1] != ' '){
+                word_count++;
+            }
+        }
+    }
+    //--------------------------------------------
+    
+    // assigning the command line words to their places in memory
+    void* token_addresses[word_count];
+    int word = 0;
     while((token = strtok_r(cmdcpy, " ", &cmdcpy))){
-        count++;
-        *esp -= strlen(token) + 1;
+        int token_len = strlen(token) + 1;
+        *esp -= token_len;
         memcpy(*esp, token, strlen(token));
+        token_addresses[word] = *esp;
+        word++;
     }
     
-    //--------------------------------------------
-   
-    
-   // int len = strlen(cmdline) + 1;
-    //*esp -= len;
-    //printf("argv Address: 0x%08x\n",(unsigned int)  *esp);
-    void* cmdlineEnd = (void*)*esp;
-    //printf("cmdlineend Address: 0x%08x\n",(unsigned int)  cmdlineEnd);
-    
-    
-    //memcpy(*esp, cmdline, len);
+    // word align
     *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
-    //printf("wordalign Address: 0x%08x\n", (unsigned int) *esp);
     
+   
+    // argv[word_count]
     *esp -= 4;
-    //printf("argv[1] Address: 0x%08x\n", (unsigned int) *esp);
-    
     *((int*) *esp) = 0;
     
+    // the addresses for each of the command line words
+    for(int i = 0; i < word_count; i++){
+        *esp -= 4;
+        *((void**) *esp) = token_addresses[i];
+    }
     
-    
-    *esp -= 4;
+    // address of the argv[0], the address of the last command line word
     void* cmdlineEndAddr = (void*)*esp;
-    //printf("argv[0] Address: 0x%08x\n",(unsigned int)  *esp);
-    *((void**) *esp) = cmdlineEnd;
-    
     *esp -= 4;
-    //printf("argv Address: 0x%08x\n", (unsigned int) *esp);
     *((void**) *esp) = cmdlineEndAddr;
     
-    
+    // command line word count
     *esp -= 4;
-    //printf("argc Address: 0x%08x\n", (unsigned int) *esp);
-    *((int*) *esp) = count;
+    *((int*) *esp) = word_count;
     
+    // fake return address
     *esp -= 4;
-    //printf("fake return Address: 0x%08x\n", (unsigned int) *esp);
     *((int*) *esp) = 0;
     
     // Some of you CMPS111 Lab 3 code will go here.
