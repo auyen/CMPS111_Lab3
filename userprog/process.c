@@ -61,7 +61,7 @@
 // CMPS111 Lab 3 : Remove the comment on this literal when you are 
 // ready to start testing command line arguments
 // *****************************************************************
-//#define COMMAND_ARGUMENTS
+#define COMMAND_ARGUMENTS
 
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmdline, void (**eip) (void), void **esp);
@@ -95,8 +95,15 @@ push_command(const char *cmdline, void **esp)
     
     // assigning the command line words to their places in memory
     void* token_addresses[word_count];
-    int word = 0;
+    void* words[word_count];
+    int back_words = word_count - 1;
     while((token = strtok_r(cmdcpy, " ", &cmdcpy))){
+        words[back_words] = token;
+        back_words--;
+    }
+    int word = 0;
+    for(int i = 0; i < word_count; i++){
+        char* token = words[i];
         int token_len = strlen(token) + 1;
         *esp -= token_len;
         memcpy(*esp, token, strlen(token));
@@ -183,7 +190,6 @@ process_execute(const char *cmdline)
     tid = thread_create(cmdline, PRI_DEFAULT, start_process, cmdline_copy);
     
     semaphore_down(&childSema);
-    //timer_msleep(10);
     
     return tid;
 }
@@ -204,7 +210,30 @@ start_process(void *cmdline)
     pif.gs = pif.fs = pif.es = pif.ds = pif.ss = SEL_UDSEG;
     pif.cs = SEL_UCSEG;
     pif.eflags = FLAG_IF | FLAG_MBS;
-    success = load(cmdline, &pif.eip, &pif.esp);
+    
+    char* cmdcpy;
+    char buf [strlen(cmdline)];
+    int length = strlcpy(buf, cmdline, sizeof(buf)+1);
+    cmdcpy = buf;
+    char* filename;
+    int space = 0;
+    //printf("cmdcpy %s\n", cmdcpy);
+    for(int i = 0; i < strlen(cmdcpy); i++){
+        if(cmdcpy[i] == ' '){
+            space = 1;
+        }
+    }
+    if(space = 1){
+        filename = strtok_r(cmdcpy, " ", &cmdcpy);
+    }
+    else{
+        filename = cmdcpy;
+    }
+    
+    //printf("filename %s\n", filename);
+    //printf("startprocess cmdline %s\n", cmdline);
+    success = load(filename, &pif.eip, &pif.esp);
+   
     if (success) {
         
         push_command(cmdline, &pif.esp);
