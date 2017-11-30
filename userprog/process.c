@@ -55,6 +55,7 @@
 #include "userprog/syscall.h"
 #include "userprog/process.h"
 #include "devices/timer.h"
+#include "threads/semaphore.h"
 
 // *****************************************************************
 // CMPS111 Lab 3 : Remove the comment on this literal when you are 
@@ -74,24 +75,29 @@ static void
 push_command(const char *cmdline, void **esp)
 {
     //printf("Base Address: 0x%08x\n", *esp);
-
+    //printf("%s\n", cmdline);
     // Word align with the stack pointer. DO NOT REMOVE THIS LINE.
     *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
     
     //----------------------------------------- Number of words in command line
-    //int count = 0;
-    //if(sizeof(cmdline) > 0){
-    //    count++;
-    //}
+    int count = 0;
+    char * token;
+    char * cmdcpy = cmdline;
+    while((token = strtok_r(cmdcpy, " ", &cmdcpy))){
+        count++;
+        
+        //printf("%s, %d\n", token, count);
+    }
+    
     /*
     for(int i = 0; cmdline[i] != '\0'; i++){
         if(cmdline[i] == ' '){
             count++;
         }
     }
-     * */
+    */
     //--------------------------------------------
-    int count = 1;
+   
     
     int len = strlen(cmdline) + 1;
     *esp -= len;
@@ -149,6 +155,7 @@ push_command(const char *cmdline, void **esp)
     // If nothing else, it'll remind you what you did when it doesn't work :)
 }
 
+static struct semaphore childSema;
 /* 
  * Starts a new kernel thread running a user program loaded from CMDLINE. 
  * The new thread may be scheduled (and may even exit) before process_execute() 
@@ -175,11 +182,12 @@ process_execute(const char *cmdline)
         return TID_ERROR;
     strlcpy(cmdline_copy, cmdline, PGSIZE);
     
+    semaphore_init(&childSema, 0);
     // Create a Kernel Thread for the new process
     tid = thread_create(cmdline, PRI_DEFAULT, start_process, cmdline_copy);
     
-    
-    timer_msleep(10);
+    semaphore_down(&childSema);
+    //timer_msleep(10);
     
     return tid;
 }
@@ -210,7 +218,7 @@ start_process(void *cmdline)
     if (!success) {
         thread_exit();
     }
-    
+    semaphore_up(&childSema);
     // Start the user process by simulating a return from an
     // interrupt, implemented by intr_exit (in threads/intr-stubs.S).  
     // Because intr_exit takes all of its arguments on the stack in 
