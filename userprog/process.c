@@ -85,28 +85,21 @@ push_command(const char *cmdline, void **esp)
     char * cmdcpy = cmdline;
     while((token = strtok_r(cmdcpy, " ", &cmdcpy))){
         count++;
-        
-        //printf("%s, %d\n", token, count);
+        *esp -= strlen(token) + 1;
+        memcpy(*esp, token, strlen(token));
     }
     
-    /*
-    for(int i = 0; cmdline[i] != '\0'; i++){
-        if(cmdline[i] == ' '){
-            count++;
-        }
-    }
-    */
     //--------------------------------------------
    
     
-    int len = strlen(cmdline) + 1;
-    *esp -= len;
+   // int len = strlen(cmdline) + 1;
+    //*esp -= len;
     //printf("argv Address: 0x%08x\n",(unsigned int)  *esp);
     void* cmdlineEnd = (void*)*esp;
     //printf("cmdlineend Address: 0x%08x\n",(unsigned int)  cmdlineEnd);
     
     
-    memcpy(*esp, cmdline, len);
+    //memcpy(*esp, cmdline, len);
     *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
     //printf("wordalign Address: 0x%08x\n", (unsigned int) *esp);
     
