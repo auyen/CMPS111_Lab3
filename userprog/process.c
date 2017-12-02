@@ -104,39 +104,46 @@ push_command(const char *cmdline, void **esp)
     int word = 0;
     for(int i = 0; i < word_count; i++){
         char* token = words[i];
+        
         int token_len = strlen(token) + 1;
         *esp -= token_len;
         memcpy(*esp, token, strlen(token));
+        //printf("0x%08x %s*\n", *esp, token);
         token_addresses[word] = *esp;
         word++;
     }
     
     // word align
     *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
-    
+    //printf("0x%08x word align\n", *esp);
    
     // argv[word_count]
     *esp -= 4;
     *((int*) *esp) = 0;
+    //printf("0x%08x 0 argv[%d]\n", *esp, word_count);
     
     // the addresses for each of the command line words
     for(int i = 0; i < word_count; i++){
         *esp -= 4;
         *((void**) *esp) = token_addresses[i];
+        //printf("0x%08x 0x%08x argv[%d]\n", *esp, token_addresses[i], word_count-i - 1);
     }
     
     // address of the argv[0], the address of the last command line word
     void* cmdlineEndAddr = (void*)*esp;
     *esp -= 4;
     *((void**) *esp) = cmdlineEndAddr;
+    //printf("0x%08x 0x%08x argv\n", *esp, cmdlineEndAddr);
     
     // command line word count
     *esp -= 4;
     *((int*) *esp) = word_count;
+    //printf("0x%08x %d argc word count\n", *esp, word_count);
     
     // fake return address
     *esp -= 4;
     *((int*) *esp) = 0;
+    //printf("0x%08x 0 fake return\n", *esp);
     
     // Some of you CMPS111 Lab 3 code will go here.
     //
@@ -187,7 +194,29 @@ process_execute(const char *cmdline)
     
     semaphore_init(&childSema, 0);
     // Create a Kernel Thread for the new process
-    tid = thread_create(cmdline, PRI_DEFAULT, start_process, cmdline_copy);
+    //--------------------------------------------------------------------------filename
+    char* cmdcpy;
+    char buf [strlen(cmdline)];
+    int length = strlcpy(buf, cmdline, sizeof(buf)+1);
+    cmdcpy = buf;
+    char* filename;
+    int space = 0;
+    //printf("cmdcpy %s\n", cmdcpy);
+    for(int i = 0; i < strlen(cmdcpy); i++){
+        if(cmdcpy[i] == ' '){
+            space = 1;
+            break;
+        }
+    }
+    if(space = 1){
+        filename = strtok_r(cmdcpy, " ", &cmdcpy);
+    }
+    else{
+        filename = cmdcpy;
+    }
+    
+    
+    tid = thread_create(filename, PRI_DEFAULT, start_process, cmdline_copy);
     
     semaphore_down(&childSema);
     
