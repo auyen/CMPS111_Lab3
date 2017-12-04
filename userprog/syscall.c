@@ -73,23 +73,27 @@ syscall_handler(struct intr_frame *f)
   // Do NOT remove this line
   thread_current()->current_esp = f->esp;
 
-  switch (syscall) {
-  case SYS_HALT: 
-    shutdown_power_off();
-    break;
+    switch (syscall) {
+    case SYS_HALT: 
+      shutdown_power_off();
+      break;
 
-  case SYS_EXIT: 
-    exit_handler(f);
-    break;
+    case SYS_EXIT: 
+      exit_handler(f);
+      break;
       
-  case SYS_WRITE: 
-    write_handler(f);
-    break;
+    case SYS_WRITE: 
+      write_handler(f);
+      break;
+    
+    case SYS_OPEN:
+        open_handler(f);
+        break;
 
-  default:
-    printf("[ERROR] system call %d is unimplemented!\n", syscall);
-    thread_exit();
-    break;
+    default:
+      printf("[ERROR] system call %d is unimplemented!\n", syscall);
+      thread_exit();
+      break;
   }
 }
 
@@ -129,6 +133,9 @@ static uint32_t sys_write(int fd, const void *buffer, unsigned size)
     putbuf(buffer, size);
     ret = size;
   }
+  else{ // else, write to file
+      
+  }
 
   return (uint32_t) ret;
 }
@@ -146,3 +153,16 @@ static void write_handler(struct intr_frame *f)
     f->eax = sys_write(fd, buffer, size);
 }
 
+static uint32_t sys_open(const char* file){
+    if(!filesys_open(file)){
+        return (uint32_t) -1;
+    }
+    return (uint32_t) filesys_open(file) * -1;
+}
+
+static void open_handler(struct intr_frame *f){
+    char* file;
+    
+    umem_read(f->esp + 4, &file, sizeof(file));
+    f->eax = sys_open(file);
+}

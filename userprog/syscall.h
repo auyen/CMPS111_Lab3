@@ -37,5 +37,6 @@
 
 void syscall_init(void);
 void sys_exit(int);
+static void open_handler(intr_frame);
 
 #endif /* userprog/syscall.h */
