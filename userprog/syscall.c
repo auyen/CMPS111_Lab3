@@ -172,6 +172,9 @@ static void open_handler(struct intr_frame *f){
 }
 
 static bool sys_create(const char* file, off_t size){
+    if(size == 0){
+        return false;
+    }
     return filesys_create(file, size, false);
 }
 
