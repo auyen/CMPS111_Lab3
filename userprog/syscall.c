@@ -210,3 +210,21 @@ static void close_handler(struct intr_frame *f){
     f->eax = (uint32_t) sys_close(path);
 }
 
+static uint32_t sys_read(int fd, const void *buffer, unsigned size){
+    umem_check((const uint8_t*) buffer);
+    umem_check((const uint8_t*) buffer + size - 1);
+    
+    
+}
+
+static void read_handler(struct intr_frame *f){
+    int fd; 
+    const void *buffer; 
+    unsigned size;
+    
+    umem_read(f->esp + 4, &fd, sizeof(fd));
+    umem_read(f->esp + 8, &buffer, sizeof(buffer));
+    umem_read(f->esp + 12, & size, sizeof(size));
+    
+    f->eax = sys_read(fd, buffer, size);
+}

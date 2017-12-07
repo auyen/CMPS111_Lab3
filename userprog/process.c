@@ -194,21 +194,14 @@ process_execute(const char *cmdline)
     
     semaphore_init(&childSema, 0);
     // Create a Kernel Thread for the new process
-    //--------------------------------------------------------------------------filename
+    
     char* cmdcpy;
     char buf [strlen(cmdline)];
     int length = strlcpy(buf, cmdline, sizeof(buf)+1);
     cmdcpy = buf;
     char* filename;
-    int space = 0;
-    //printf("cmdcpy %s\n", cmdcpy);
-    for(int i = 0; i < strlen(cmdcpy); i++){
-        if(cmdcpy[i] == ' '){
-            space = 1;
-            break;
-        }
-    }
-    if(space = 1){
+    char* space = strchr(cmdline, ' ');
+    if(space != NULL){
         filename = strtok_r(cmdcpy, " ", &cmdcpy);
     }
     else{
@@ -245,22 +238,14 @@ start_process(void *cmdline)
     int length = strlcpy(buf, cmdline, sizeof(buf)+1);
     cmdcpy = buf;
     char* filename;
-    int space = 0;
-    //printf("cmdcpy %s\n", cmdcpy);
-    for(int i = 0; i < strlen(cmdcpy); i++){
-        if(cmdcpy[i] == ' '){
-            space = 1;
-        }
-    }
-    if(space = 1){
+    char* space = strchr(cmdline, ' ');
+    if(space != NULL){
         filename = strtok_r(cmdcpy, " ", &cmdcpy);
     }
     else{
         filename = cmdcpy;
     }
     
-    //printf("filename %s\n", filename);
-    //printf("startprocess cmdline %s\n", cmdline);
     success = load(filename, &pif.eip, &pif.esp);
    
     if (success) {
