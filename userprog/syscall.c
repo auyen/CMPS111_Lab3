@@ -48,11 +48,8 @@
 #include "userprog/syscall.h"
 #include "userprog/process.h"
 #include "userprog/umem.h"
+#include "userprog/lab3.h"
 
-static void syscall_handler(struct intr_frame *);
-
-static void write_handler(struct intr_frame *);
-static void exit_handler(struct intr_frame *);
 
 void
 syscall_init (void)
@@ -61,7 +58,7 @@ syscall_init (void)
   lock_init(&syscallLock);
 }
 
-static void
+void
 syscall_handler(struct intr_frame *f)
 {
   int syscall;
@@ -113,118 +110,3 @@ syscall_handler(struct intr_frame *f)
 // that .h in this .c file.
 // *****************************************************************
 
-void sys_exit(int status) 
-{
-  printf("%s: exit(%d)\n", thread_current()->name, status);
-  thread_exit();
-}
-
-static void exit_handler(struct intr_frame *f) 
-{
-  int exitcode;
-  umem_read(f->esp + 4, &exitcode, sizeof(exitcode));
-
-  sys_exit(exitcode);
-}
-
-/*
- * BUFFER+0 and BUFFER+size should be valid user adresses
- */
-static uint32_t sys_write(int fd, const void *buffer, unsigned size)
-{
-  umem_check((const uint8_t*) buffer);
-  umem_check((const uint8_t*) buffer + size - 1);
-
-  int ret = -1;
-
-  if (fd == 1) { // write to stdout
-    putbuf(buffer, size);
-    ret = size;
-  }
-  else{ // else, write to file
-  }
-
-  return (uint32_t) ret;
-}
-
-static void write_handler(struct intr_frame *f)
-{
-    int fd;
-    const void *buffer;
-    unsigned size;
-
-    umem_read(f->esp + 4, &fd, sizeof(fd));
-    umem_read(f->esp + 8, &buffer, sizeof(buffer));
-    umem_read(f->esp + 12, &size, sizeof(size));
-
-    f->eax = sys_write(fd, buffer, size);
-}
-
-static uint32_t sys_open(const char* file){
-    if(!filesys_open(file)){
-        return (uint32_t) -1;
-    }
-    return (uint32_t) filesys_open(file) * -1;
-}
-
-static void open_handler(struct intr_frame *f){
-    char* file;
-    
-    umem_read(f->esp + 4, &file, sizeof(file));
-    f->eax = sys_open(file);
-}
-
-bool sys_create(const char* file, unsigned size){
-    if(strlen(file) < 1 || strlen(file) > 16){
-        return false;
-    }
-    lock_acquire(&syscallLock);
-    bool success = filesys_create(file, size, false);
-    lock_release(&syscallLock);
-    return success;
-}
-
-static void create_handler(struct intr_frame *f){
-    char* path;
-    unsigned size;
-    
-    umem_read(f->esp + 4, &path, sizeof(path));
-    umem_read(f->esp + 8, &size, sizeof(size));
-    
-    f->eax = (uint32_t) sys_create(path, size);
-}
-
-bool sys_close(const char* file){
-    printf("%s\n", file);
-    lock_acquire(&syscallLock);
-    bool success = filesys_close(file);
-    lock_release(&syscallLock);
-    return success;
-}
-
-static void close_handler(struct intr_frame *f){
-    char* path;
-    
-    umem_read(f->esp + 4, &path, sizeof(path));
-    
-    f->eax = (uint32_t) sys_close(path);
-}
-
-static uint32_t sys_read(int fd, const void *buffer, unsigned size){
-    umem_check((const uint8_t*) buffer);
-    umem_check((const uint8_t*) buffer + size - 1);
-    
-    
-}
-
-static void read_handler(struct intr_frame *f){
-    int fd; 
-    const void *buffer; 
-    unsigned size;
-    
-    umem_read(f->esp + 4, &fd, sizeof(fd));
-    umem_read(f->esp + 8, &buffer, sizeof(buffer));
-    umem_read(f->esp + 12, & size, sizeof(size));
-    
-    f->eax = sys_read(fd, buffer, size);
-}
