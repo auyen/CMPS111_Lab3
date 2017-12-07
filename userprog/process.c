@@ -217,7 +217,7 @@ process_execute(const char *cmdline)
     
     
     tid = thread_create(filename, PRI_DEFAULT, start_process, cmdline_copy);
-    
+    timer_msleep(100);
     semaphore_down(&childSema);
     
     return tid;

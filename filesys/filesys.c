@@ -109,6 +109,37 @@ filesys_open (const char *name)
   return file_open (inode);
 }
 
+
+bool
+filesys_close (const char *name)
+{
+  int l = strlen(name);
+  if (l == 0) return NULL;
+
+  char directory[ l + 1 ];
+  char file_name[ l + 1 ];
+  split_path_filename(name, directory, file_name);
+  struct dir *dir = dir_open_path (directory);
+  struct inode *inode = NULL;
+
+  // removed directory handling
+  if (dir == NULL) return NULL;
+
+  if (strlen(file_name) > 0) {
+    dir_lookup (dir, file_name, &inode);
+    dir_close (dir);
+  }
+  else { // empty filename : just return the directory
+    inode = dir_get_inode (dir);
+  }
+
+  // removed file handling
+  if (inode == NULL || inode_is_removed (inode))
+    return false;
+  file_close(file_open(inode));
+  return true;
+}
+
 /* Deletes the file named NAME.
    Returns true if successful, false on failure.
    Fails if no file named NAME exists,

@@ -58,6 +58,7 @@ void
 syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&syscallLock);
 }
 
 static void
@@ -93,7 +94,10 @@ syscall_handler(struct intr_frame *f)
     case SYS_CREATE:
         create_handler(f);
         break;
- 
+
+    case SYS_CLOSE:
+            //close_handler(f); 
+            break;
     default:
       printf("[ERROR] system call %d is unimplemented!\n", syscall);
       thread_exit();
@@ -138,7 +142,6 @@ static uint32_t sys_write(int fd, const void *buffer, unsigned size)
     ret = size;
   }
   else{ // else, write to file
-      
   }
 
   return (uint32_t) ret;
@@ -171,16 +174,38 @@ static void open_handler(struct intr_frame *f){
     f->eax = sys_open(file);
 }
 
-static bool sys_create(const char* file, off_t size){
-    return filesys_create(file, size, false);
+bool sys_create(const char* file, unsigned size){
+    if(strlen(file) < 1 || strlen(file) > 16){
+        return false;
+    }
+    lock_acquire(&syscallLock);
+    bool success = filesys_create(file, size, false);
+    lock_release(&syscallLock);
+    return success;
 }
 
 static void create_handler(struct intr_frame *f){
     char* path;
-    off_t size;
+    unsigned size;
     
     umem_read(f->esp + 4, &path, sizeof(path));
     umem_read(f->esp + 8, &size, sizeof(size));
     
-    f->eax = sys_create(path, size);
+    f->eax = (uint32_t) sys_create(path, size);
+}
+
+bool sys_close(const char* file){
+    printf("%s\n", file);
+    lock_acquire(&syscallLock);
+    bool success = filesys_close(file);
+    lock_release(&syscallLock);
+    return success;
+}
+
+static void close_handler(struct intr_frame *f){
+    char* path;
+    
+    umem_read(f->esp + 4, &path, sizeof(path));
+    
+    f->eax = (uint32_t) sys_close(path);
 }

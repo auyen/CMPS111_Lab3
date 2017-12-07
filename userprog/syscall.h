@@ -34,10 +34,14 @@
 #define USERPROG_SYSCALL_H
 
 #include "userprog/process.h"
+#include "threads/lock.h"
 
+struct lock syscallLock;
 void syscall_init(void);
 void sys_exit(int);
 static void open_handler(intr_frame);
 static void create_handler(intr_frame);
+static bool sys_create(const char*, unsigned);
+static void close_handler(struct intr_frame *f);
 
 #endif /* userprog/syscall.h */
