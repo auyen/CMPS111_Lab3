@@ -34,6 +34,7 @@
 #define USERPROG_PROCESS_H
 
 #include "threads/thread.h"
+#include "userprog/lab3.h"
 
 tid_t process_execute(const char *);
 int process_wait(tid_t);

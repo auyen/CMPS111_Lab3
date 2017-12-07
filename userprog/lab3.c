@@ -29,6 +29,83 @@
 #include "userprog/lab3.h"
 
 
+/* 
+ * Counts the number of words there are in the command line.
+ */
+int cmdline_word_count(const char *cmdline){
+    int word_count = 1;
+    for(int i = 0; i < strlen(cmdline); i++){
+        if(cmdline[i] == ' '){
+            if(i > 0 && cmdline[i-1] != ' '){
+                word_count++;
+            }
+        }
+    }
+    return word_count;
+}
+
+
+/* 
+ * Handles breaking up the command line and placing the words into memory.
+ * First, it places the words in reverse order into an array.
+ * Next, it uses the array to place the copy the words into memory, keeping
+        the addresses in an array. 
+ * These addresses are then inserted into their own places in memory.
+ */
+void cmdline_word_handler(const char *cmdline, void **esp, int word_count){
+    char* token;
+    char* cmdcpy = cmdline;
+    
+    // assigning the command line words to their places in memory
+    void* token_addresses[word_count];
+    void* words[word_count];
+    int back_words = word_count - 1;
+    while((token = strtok_r(cmdcpy, " ", &cmdcpy))){
+        words[back_words] = token;
+        back_words--;
+    }
+    int word = 0;
+    for(int i = 0; i < word_count; i++){
+        char* token = words[i];
+        
+        int token_len = strlen(token) + 1;
+        *esp -= token_len;
+        memcpy(*esp, token, strlen(token));
+        token_addresses[word] = *esp;
+        word++;
+    }
+    
+    *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
+   
+    *esp -= 4;
+    *((int*) *esp) = 0;
+    
+    for(int i = 0; i < word_count; i++){
+        *esp -= 4;
+        *((void**) *esp) = token_addresses[i];
+    }
+}
+
+/* 
+ * Handles the placement of the command line arguments into memory.
+ */
+void args_handler(const char *cmdline, void **esp){
+    *esp = (void*) ((unsigned int) (*esp) & 0xfffffffc);
+    
+    int word_count = cmdline_word_count(cmdline);
+    
+    cmdline_word_handler(cmdline, esp, word_count);
+    
+    void* cmdlineEndAddr = (void*)*esp;
+    *esp -= 4;
+    *((void**) *esp) = cmdlineEndAddr;
+    
+    *esp -= 4;
+    *((int*) *esp) = word_count;
+    
+    *esp -= 4;
+    *((int*) *esp) = 0;
+}
 
 void sys_exit(int status) 
 {
@@ -40,7 +117,6 @@ void exit_handler(struct intr_frame *f)
 {
   int exitcode;
   umem_read(f->esp + 4, &exitcode, sizeof(exitcode));
-
   sys_exit(exitcode);
 }
 
@@ -58,9 +134,9 @@ uint32_t sys_write(int fd, const void *buffer, unsigned size)
     putbuf(buffer, size);
     ret = size;
   }
-  else{ // else, write to file
+  else{ 
+      // else, write to file
   }
-
   return (uint32_t) ret;
 }
 

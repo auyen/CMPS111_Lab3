@@ -18,6 +18,8 @@
 #include "threads/lock.h"
 
 struct lock syscallLock;
+int cmdline_word_count(const char *cmdline);
+void args_handler(const char *cmdline, void **esp);
 void sys_exit(int);
 void open_handler(struct intr_frame *f);
 void create_handler(struct intr_frame *f);
